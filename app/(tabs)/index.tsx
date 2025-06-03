@@ -88,7 +88,7 @@ const styles = StyleSheet.create({
   buttonsContainer: {
     flex: 1,
     display: "flex",
-    justifyContent: "center",
+    justifyContent: "flex-end",
     alignItems: "center",
     gap: 20,
   },
