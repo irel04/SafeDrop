@@ -1,4 +1,6 @@
 import ScreenLayout from "@/components/ScreenLayout";
+import Button from "@/components/ui/Button";
+import { IconSymbol } from "@/components/ui/IconSymbol";
 import { COLORS } from "@/utils/constant";
 import { Image, StyleSheet, Text, View } from "react-native";
 
@@ -22,6 +24,21 @@ export default function HomeScreen() {
               <Text style={styles.dateTimeContent}>8:00 PM</Text>
             </View>
           </View>
+        </View>
+
+        <View style={styles.buttonsContainer}>
+          <Button variant="primary" disabled={true}>
+            <View style={styles.labelOrientation}>
+              <Text style={{ color: "#FFFFFF" }}>Lock</Text>
+              <IconSymbol name="lock" size={16} color={"#FFFFFF"} />
+            </View>
+          </Button>
+          <Button variant="primary">
+            <View style={styles.labelOrientation}>
+              <Text style={{ color: "#FFFFFF" }}>Unlock</Text>
+              <IconSymbol name="lock.open" size={16} color={"#FFFFFF"} />
+            </View>
+          </Button>
         </View>
       </View>
     </ScreenLayout>
@@ -66,5 +83,20 @@ const styles = StyleSheet.create({
   dateTimeContent: {
     color: COLORS.BRAND[700],
     fontSize: 10,
+  },
+
+  buttonsContainer: {
+    flex: 1,
+    display: "flex",
+    justifyContent: "center",
+    alignItems: "center",
+    gap: 20,
+  },
+  labelOrientation: {
+    fontSize: 16,
+    display: "flex",
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
   },
 });
