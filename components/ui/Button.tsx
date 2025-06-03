@@ -1,7 +1,6 @@
 import { COLORS } from "@/utils/constant";
 import React from "react";
 import {
-  Text,
   StyleSheet,
   TouchableOpacityProps,
   TouchableOpacity,
@@ -23,6 +22,7 @@ const Button = ({ variant = "primary", children, ...otherProps }: TButton) => {
         styles.base,
         variantStyles[variant],
         otherProps.disabled ? { backgroundColor: COLORS.BRAND[300] } : {},
+        otherProps.style,
       ]}
     >
       {children}
