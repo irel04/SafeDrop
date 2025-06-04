@@ -58,7 +58,7 @@ const styles = StyleSheet.create({
   textContent: {
     display: "flex",
     height: 140,
-    gap: 5,
+    gap: 10,
     position: "absolute",
     top: 10,
     left: 40,
@@ -72,11 +72,11 @@ const styles = StyleSheet.create({
   messageText: {
     color: "#FFFFFF",
     fontSize: 20,
-    flex: 1,
     fontWeight: "bold",
   },
   dateTimeContainer: {
     display: "flex",
+    alignSelf: "flex-end",
     flexDirection: "row",
     gap: 10,
   },
