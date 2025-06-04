@@ -1,10 +1,79 @@
 import ScreenLayout from "@/components/ScreenLayout";
 import Button from "@/components/ui/Button";
 import { IconSymbol } from "@/components/ui/IconSymbol";
+import { TMailbox } from "@/types/dto";
 import { COLORS } from "@/utils/constant";
-import { Image, StyleSheet, Text, View } from "react-native";
+import { supabase } from "@/utils/supabase";
+import { PostgrestSingleResponse } from "@supabase/supabase-js";
+import { useEffect, useState } from "react";
+import { Alert, Image, StyleSheet, Text, View } from "react-native";
 
 export default function HomeScreen() {
+  const [isLocked, setIsLocked] = useState<boolean>(false);
+  const [id, setId] = useState<string | null>(null);
+
+  // Load for the first time
+  useEffect(() => {
+    const getMailbox = async () => {
+      try {
+        const {
+          data: mailbox,
+          error,
+        }: PostgrestSingleResponse<Omit<TMailbox, "time" | "rfid">> =
+          await supabase.from("mailbox").select("*").single();
+
+        if (error) throw error;
+
+        setIsLocked(mailbox.is_locked);
+        setId(mailbox.id);
+      } catch (error) {
+        console.error(error);
+      }
+    };
+    getMailbox();
+  }, []);
+
+  // Listen to changes
+  useEffect(() => {
+    const mailboxChannel1 = supabase.channel("mailbox_channel_1");
+
+    mailboxChannel1
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "mailbox" },
+        (payload) => {
+          const newItem = payload.new as TMailbox;
+
+          setIsLocked(newItem.is_locked);
+        },
+      )
+      .subscribe();
+
+    return () => {
+      mailboxChannel1.unsubscribe();
+    };
+  }, []);
+
+  const handlePressButton = async (isLocked: boolean) => {
+    try {
+      const { error } = await supabase
+        .from("mailbox")
+        .update({ is_locked: isLocked })
+        .eq("id", id);
+
+      if (error) throw error;
+
+      Alert.alert(
+        "Success",
+        isLocked
+          ? "You’ve locked the mailbox."
+          : "You’ve unlocked the mailbox.",
+      );
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
   return (
     <ScreenLayout>
       <View style={styles.homeContainer}>
@@ -27,13 +96,21 @@ export default function HomeScreen() {
         </View>
 
         <View style={styles.buttonsContainer}>
-          <Button variant="primary" disabled={true}>
+          <Button
+            variant="primary"
+            disabled={isLocked}
+            onPress={() => handlePressButton(true)}
+          >
             <View style={styles.labelOrientation}>
               <Text style={{ color: "#FFFFFF" }}>Lock</Text>
               <IconSymbol name="lock" size={16} color={"#FFFFFF"} />
             </View>
           </Button>
-          <Button variant="primary">
+          <Button
+            variant="primary"
+            disabled={!isLocked}
+            onPress={() => handlePressButton(false)}
+          >
             <View style={styles.labelOrientation}>
               <Text style={{ color: "#FFFFFF" }}>Unlock</Text>
               <IconSymbol name="lock.open" size={16} color={"#FFFFFF"} />
