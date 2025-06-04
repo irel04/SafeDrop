@@ -1,16 +1,46 @@
 import ScreenLayout from "@/components/ScreenLayout";
 import Button from "@/components/ui/Button";
 import { IconSymbol } from "@/components/ui/IconSymbol";
-import { TMailbox } from "@/types/dto";
+import { TMailbox, TParcelStatusEnum } from "@/types/dto";
 import { COLORS } from "@/utils/constant";
 import { supabase } from "@/utils/supabase";
 import { PostgrestSingleResponse } from "@supabase/supabase-js";
 import { useEffect, useState } from "react";
 import { Alert, Image, StyleSheet, Text, View } from "react-native";
+import { Skeleton } from "@rneui/base";
+
+type TMessageStructure = {
+  heading: string;
+  body: string;
+};
+
+type TMessageContent = {
+  [key in TParcelStatusEnum]: TMessageStructure;
+};
+
+const MESSAGE_CONTENT: TMessageContent = {
+  claimed: {
+    heading: "Parcel Claimed Successfully",
+    body: "Please make sure to securely close the mailbox after retrieval.",
+  },
+  delivered: {
+    heading: "Delivery Made",
+    body: "Hey! A parcel was just dropped by. Kindly checked it immediately",
+  },
+  empty: {
+    heading: "No parcel right now",
+    body: "Please ensure the mailbox is closed properly after checking.",
+  },
+};
 
 export default function HomeScreen() {
   const [isLocked, setIsLocked] = useState<boolean>(false);
+
   const [id, setId] = useState<string | null>(null);
+
+  const [parcelStatus, setParcelStatus] = useState<TMessageStructure | null>(
+    null,
+  );
 
   // Load for the first time
   useEffect(() => {
@@ -26,6 +56,8 @@ export default function HomeScreen() {
 
         setIsLocked(mailbox.is_locked);
         setId(mailbox.id);
+
+        setParcelStatus(MESSAGE_CONTENT[mailbox.parcel_status]);
       } catch (error) {
         console.error(error);
       }
@@ -45,6 +77,11 @@ export default function HomeScreen() {
           const newItem = payload.new as TMailbox;
 
           setIsLocked(newItem.is_locked);
+          setParcelStatus(null);
+
+          setTimeout(() => {
+            setParcelStatus(MESSAGE_CONTENT[newItem.parcel_status]);
+          }, 1200);
         },
       )
       .subscribe();
@@ -83,16 +120,18 @@ export default function HomeScreen() {
           <Image source={require("@/assets/images/dropbox.png")} />
 
           {/* Text Content for absolute positioning */}
-          <View style={styles.textContent}>
-            <Text style={styles.statuText}>Delivery Made</Text>
-            <Text style={styles.messageText}>
-              Hey! A parcel was just dropped by. Kindly check it immediately
-            </Text>
-            <View style={styles.dateTimeContainer}>
-              <Text style={styles.dateTimeContent}>July 25, 2025</Text>
-              <Text style={styles.dateTimeContent}>8:00 PM</Text>
+          {parcelStatus === null ? (
+            <TextSkeleton />
+          ) : (
+            <View style={styles.textContent}>
+              <Text style={styles.statuText}>{parcelStatus.heading}</Text>
+              <Text style={styles.messageText}>{parcelStatus.body}</Text>
+              <View style={styles.dateTimeContainer}>
+                <Text style={styles.dateTimeContent}>July 25, 2025</Text>
+                <Text style={styles.dateTimeContent}>8:00 PM</Text>
+              </View>
             </View>
-          </View>
+          )}
         </View>
 
         <View style={styles.buttonsContainer}>
@@ -122,6 +161,16 @@ export default function HomeScreen() {
   );
 }
 
+const TextSkeleton = () => {
+  return (
+    <View style={[styles.textContent, { gap: 6, width: 250 }]}>
+      <Skeleton width={75} height={15} />
+      <Skeleton height={90} />
+      <Skeleton width={75} height={15} style={{ alignSelf: "flex-end" }} />
+    </View>
+  );
+};
+
 const styles = StyleSheet.create({
   homeContainer: {
     flex: 1,
@@ -140,6 +189,7 @@ const styles = StyleSheet.create({
     top: 10,
     left: 40,
     maxWidth: 230,
+    padding: 5,
   },
   statuText: {
     color: COLORS.BRAND[700],
