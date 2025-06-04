@@ -8,4 +8,5 @@ export type TMailbox = {
   rfid: string;
   time: string;
   created_at: string;
+  updated_at: string;
 };

@@ -8,6 +8,7 @@ import { PostgrestSingleResponse } from "@supabase/supabase-js";
 import { useEffect, useState } from "react";
 import { Alert, Image, StyleSheet, Text, View } from "react-native";
 import { Skeleton } from "@rneui/base";
+import { getDateTime } from "@/utils/helper";
 
 type TMessageStructure = {
   heading: string;
@@ -29,7 +30,7 @@ const MESSAGE_CONTENT: TMessageContent = {
   },
   empty: {
     heading: "No parcel right now",
-    body: "Please ensure the mailbox is closed properly after checking.",
+    body: "Please ensure the mailbox is closed properly.",
   },
 };
 
@@ -37,6 +38,11 @@ export default function HomeScreen() {
   const [isLocked, setIsLocked] = useState<boolean>(false);
 
   const [id, setId] = useState<string | null>(null);
+
+  const [updatedAt, setUpdatedAt] = useState<{
+    time: string;
+    date: string;
+  } | null>(null);
 
   const [parcelStatus, setParcelStatus] = useState<TMessageStructure | null>(
     null,
@@ -53,6 +59,13 @@ export default function HomeScreen() {
           await supabase.from("mailbox").select("*").single();
 
         if (error) throw error;
+
+        const { dateISO, timeISO } = getDateTime(mailbox.updated_at);
+
+        setUpdatedAt({
+          date: dateISO,
+          time: timeISO,
+        });
 
         setIsLocked(mailbox.is_locked);
         setId(mailbox.id);
@@ -75,6 +88,13 @@ export default function HomeScreen() {
         { event: "*", schema: "public", table: "mailbox" },
         (payload) => {
           const newItem = payload.new as TMailbox;
+
+          const { dateISO, timeISO } = getDateTime(newItem.updated_at);
+
+          setUpdatedAt({
+            date: dateISO,
+            time: timeISO,
+          });
 
           setIsLocked(newItem.is_locked);
           setParcelStatus(null);
@@ -127,8 +147,8 @@ export default function HomeScreen() {
               <Text style={styles.statuText}>{parcelStatus.heading}</Text>
               <Text style={styles.messageText}>{parcelStatus.body}</Text>
               <View style={styles.dateTimeContainer}>
-                <Text style={styles.dateTimeContent}>July 25, 2025</Text>
-                <Text style={styles.dateTimeContent}>8:00 PM</Text>
+                <Text style={styles.dateTimeContent}>{updatedAt?.date}</Text>
+                <Text style={styles.dateTimeContent}>{updatedAt?.time}</Text>
               </View>
             </View>
           )}
