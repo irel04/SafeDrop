@@ -1,6 +1,10 @@
 import ScreenLayout from "@/components/ScreenLayout";
 import Button from "@/components/ui/Button";
+import { THistory } from "@/types/dto";
 import { COLORS } from "@/utils/constant";
+import { supabase } from "@/utils/supabase";
+import { PostgrestResponse } from "@supabase/supabase-js";
+import { useEffect } from "react";
 import {
   Image,
   ScrollView,
@@ -42,6 +46,24 @@ const NotificationCard = ({ status = "unread" }: ContainerCard) => {
 };
 
 export default function History() {
+  useEffect(() => {
+    const getHistory = async () => {
+      try {
+        const { data, error }: PostgrestResponse<THistory> = await supabase
+          .from("history")
+          .select("*");
+
+        if (error) throw error;
+
+        console.info(data);
+      } catch (error) {
+        console.error(error);
+      }
+    };
+
+    getHistory();
+  }, []);
+
   return (
     <ScreenLayout>
       <ScrollView>
