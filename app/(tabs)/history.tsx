@@ -4,7 +4,8 @@ import { THistory } from "@/types/dto";
 import { COLORS } from "@/utils/constant";
 import { supabase } from "@/utils/supabase";
 import { PostgrestResponse } from "@supabase/supabase-js";
-import { useEffect } from "react";
+import { addDays, format } from "date-fns";
+import { useEffect, useState } from "react";
 import {
   Image,
   ScrollView,
@@ -14,11 +15,11 @@ import {
   View,
 } from "react-native";
 
-type ContainerCard = {
+type ContainerCard = Pick<THistory, "created_at"> & {
   status?: "unread" | "read";
 };
 
-const NotificationCard = ({ status = "unread" }: ContainerCard) => {
+const NotificationCard = ({ status = "unread", created_at }: ContainerCard) => {
   return (
     <TouchableOpacity
       style={[styles.notificationCardContainer, styles[status]]}
@@ -38,7 +39,7 @@ const NotificationCard = ({ status = "unread" }: ContainerCard) => {
           Check your parcel and claim it immediately
         </Text>
         <Text style={{ fontSize: 12, color: COLORS.NEUTRAL[500] }}>
-          28 mins ago
+          {created_at}
         </Text>
       </View>
     </TouchableOpacity>
@@ -46,22 +47,31 @@ const NotificationCard = ({ status = "unread" }: ContainerCard) => {
 };
 
 export default function History() {
+  const [newest, setNewest] = useState<THistory[] | null>(null);
+
   useEffect(() => {
-    const getHistory = async () => {
+    const getEarlier = async () => {
+      const todayDate = new Date();
+      const today = format(todayDate, "yyyy-MM-dd");
+      const tomorrow = format(addDays(todayDate, 1), "yyyy-MM-dd");
+
       try {
         const { data, error }: PostgrestResponse<THistory> = await supabase
           .from("history")
-          .select("*");
+          .select("*")
+          .gte("created_at", today)
+          .lte("created_at", tomorrow)
+          .order("created_at", { ascending: false });
 
         if (error) throw error;
 
-        console.info(data);
+        setNewest(data);
       } catch (error) {
         console.error(error);
       }
     };
 
-    getHistory();
+    getEarlier();
   }, []);
 
   return (
@@ -69,12 +79,17 @@ export default function History() {
       <ScrollView>
         <Text style={styles.headerTitle}>History</Text>
         {/* Newest Notification Container */}
-        <View style={styles.newestContainer}>
-          <Text style={styles.headerSubtitle}>Newest</Text>
-          {Array.from({ length: 3 }).map((__, index) => (
-            <NotificationCard key={index} />
-          ))}
-        </View>
+        {newest && (
+          <View style={styles.newestContainer}>
+            <Text style={styles.headerSubtitle}>Newest</Text>
+            {newest.map((newHistory, index) => (
+              <NotificationCard
+                key={index}
+                created_at={newHistory.created_at}
+              />
+            ))}
+          </View>
+        )}
         <View style={styles.earlierContainer}>
           <Text style={styles.headerSubtitle}>Earlier</Text>
           {Array.from({ length: 8 }).map((__, index) => (
