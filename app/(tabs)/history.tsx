@@ -7,6 +7,7 @@ import { PostgrestResponse } from "@supabase/supabase-js";
 import { addDays, format, formatDistanceToNow } from "date-fns";
 import { useEffect, useState } from "react";
 import {
+  Alert,
   Image,
   ScrollView,
   StyleSheet,
@@ -132,7 +133,7 @@ export default function History() {
     };
   }, []);
 
-  const handlePressNotif = async (id: string) => {
+  const handlePressNotif = async (id: string, deliveredAt: string) => {
     try {
       const { error } = await supabase
         .from("history")
@@ -155,6 +156,16 @@ export default function History() {
             notif.id === id ? { ...notif, is_read: true } : notif,
           ) || null,
       );
+
+      const formattedDate = format(
+        new Date(deliveredAt),
+        "MMMM d, yyyy 'at' h:mm a",
+      );
+
+      Alert.alert(
+        "Parcel Delivery",
+        `A parcel was delivered on ${formattedDate}.\n\nPlease check your designated dropbox and claim your parcel as soon as possible to avoid delays or storage issues.`,
+      );
     } catch (error) {
       console.error(error);
     }
@@ -173,7 +184,9 @@ export default function History() {
                 key={index}
                 created_at={newHistory.created_at}
                 status={newHistory.is_read ? "read" : "unread"}
-                handlePressNotif={() => handlePressNotif(newHistory.id)}
+                handlePressNotif={() =>
+                  handlePressNotif(newHistory.id, newHistory.created_at)
+                }
               />
             ))}
           </View>
@@ -186,7 +199,9 @@ export default function History() {
                 key={index}
                 status={earlierHistory.is_read ? "read" : "unread"}
                 created_at={earlierHistory.created_at}
-                handlePressNotif={() => handlePressNotif(earlierHistory.id)}
+                handlePressNotif={() =>
+                  handlePressNotif(earlierHistory.id, earlierHistory.created_at)
+                }
               />
             ))}
           </View>
