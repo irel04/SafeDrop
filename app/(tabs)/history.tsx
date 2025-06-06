@@ -4,7 +4,7 @@ import { THistory } from "@/types/dto";
 import { COLORS } from "@/utils/constant";
 import { supabase } from "@/utils/supabase";
 import { PostgrestResponse } from "@supabase/supabase-js";
-import { addDays, format, formatDistanceToNow, subDays } from "date-fns";
+import { addDays, format, formatDistanceToNow } from "date-fns";
 import { useEffect, useState } from "react";
 import {
   Image,
@@ -17,12 +17,18 @@ import {
 
 type ContainerCard = Pick<THistory, "created_at"> & {
   status?: "unread" | "read";
+  handlePressNotif: () => void;
 };
 
-const NotificationCard = ({ status = "unread", created_at }: ContainerCard) => {
+const NotificationCard = ({
+  status = "unread",
+  created_at,
+  handlePressNotif,
+}: ContainerCard) => {
   return (
     <TouchableOpacity
       style={[styles.notificationCardContainer, styles[status]]}
+      onPress={handlePressNotif}
     >
       {/* Image */}
       <View style={styles.imageContainer}>
@@ -63,7 +69,7 @@ export default function History() {
           .select("*")
           .gte("created_at", today)
           .lte("created_at", tomorrow)
-          .order("created_at", { ascending: false });
+          .order("created_at", { ascending: true });
 
         if (error) throw error;
 
@@ -99,12 +105,11 @@ export default function History() {
   }, []);
 
   // Realtime subscription
-
   useEffect(() => {
     const realtimeHistoryChannel = supabase.channel("realtime-history").on(
       "postgres_changes",
       {
-        event: "*",
+        event: "INSERT",
         schema: "public",
         table: "history",
       },
@@ -127,6 +132,34 @@ export default function History() {
     };
   }, []);
 
+  const handlePressNotif = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from("history")
+        .update({ is_read: true })
+        .eq("id", id);
+
+      if (error) throw error;
+
+      // Invalidate/update local state
+      setNewest(
+        (prev) =>
+          prev?.map((notif) =>
+            notif.id === id ? { ...notif, is_read: true } : notif,
+          ) || null,
+      );
+
+      setEarlier(
+        (prev) =>
+          prev?.map((notif) =>
+            notif.id === id ? { ...notif, is_read: true } : notif,
+          ) || null,
+      );
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
   return (
     <ScreenLayout>
       <ScrollView>
@@ -139,6 +172,8 @@ export default function History() {
               <NotificationCard
                 key={index}
                 created_at={newHistory.created_at}
+                status={newHistory.is_read ? "read" : "unread"}
+                handlePressNotif={() => handlePressNotif(newHistory.id)}
               />
             ))}
           </View>
@@ -149,8 +184,9 @@ export default function History() {
             {earlier.map((earlierHistory, index) => (
               <NotificationCard
                 key={index}
-                status={index <= 2 ? "read" : "unread"}
+                status={earlierHistory.is_read ? "read" : "unread"}
                 created_at={earlierHistory.created_at}
+                handlePressNotif={() => handlePressNotif(earlierHistory.id)}
               />
             ))}
           </View>
