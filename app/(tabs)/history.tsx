@@ -4,7 +4,7 @@ import { THistory } from "@/types/dto";
 import { COLORS } from "@/utils/constant";
 import { supabase } from "@/utils/supabase";
 import { PostgrestResponse } from "@supabase/supabase-js";
-import { addDays, format } from "date-fns";
+import { addDays, format, formatDistanceToNow, subDays } from "date-fns";
 import { useEffect, useState } from "react";
 import {
   Image,
@@ -39,7 +39,7 @@ const NotificationCard = ({ status = "unread", created_at }: ContainerCard) => {
           Check your parcel and claim it immediately
         </Text>
         <Text style={{ fontSize: 12, color: COLORS.NEUTRAL[500] }}>
-          {created_at}
+          {formatDistanceToNow(new Date(created_at), { addSuffix: true })}
         </Text>
       </View>
     </TouchableOpacity>
@@ -49,8 +49,10 @@ const NotificationCard = ({ status = "unread", created_at }: ContainerCard) => {
 export default function History() {
   const [newest, setNewest] = useState<THistory[] | null>(null);
 
+  const [earlier, setEarlier] = useState<THistory[] | null>(null);
+
   useEffect(() => {
-    const getEarlier = async () => {
+    const getNewest = async () => {
       const todayDate = new Date();
       const today = format(todayDate, "yyyy-MM-dd");
       const tomorrow = format(addDays(todayDate, 1), "yyyy-MM-dd");
@@ -71,7 +73,58 @@ export default function History() {
       }
     };
 
+    getNewest();
+  }, []);
+
+  useEffect(() => {
+    const getEarlier = async () => {
+      const currenDate = format(new Date(), "yyyy-MM-dd");
+
+      try {
+        const { data, error }: PostgrestResponse<THistory> = await supabase
+          .from("history")
+          .select("*")
+          .lte("created_at", currenDate)
+          .order("created_at", { ascending: false });
+
+        if (error) throw error;
+
+        setEarlier(data);
+      } catch (error) {
+        console.error(error);
+      }
+    };
+
     getEarlier();
+  }, []);
+
+  // Realtime subscription
+
+  useEffect(() => {
+    const realtimeHistoryChannel = supabase.channel("realtime-history").on(
+      "postgres_changes",
+      {
+        event: "*",
+        schema: "public",
+        table: "history",
+      },
+      (payload) => {
+        const newAdded = payload.new as THistory;
+        setNewest((notif) => {
+          if (notif) {
+            return [newAdded, ...notif];
+          }
+
+          return [newAdded];
+        });
+      },
+    );
+
+    realtimeHistoryChannel.subscribe();
+
+    return () => {
+      realtimeHistoryChannel.unsubscribe();
+    };
   }, []);
 
   return (
@@ -90,15 +143,18 @@ export default function History() {
             ))}
           </View>
         )}
-        <View style={styles.earlierContainer}>
-          <Text style={styles.headerSubtitle}>Earlier</Text>
-          {Array.from({ length: 8 }).map((__, index) => (
-            <NotificationCard
-              key={index}
-              status={index <= 2 ? "read" : "unread"}
-            />
-          ))}
-        </View>
+        {earlier && (
+          <View style={styles.earlierContainer}>
+            <Text style={styles.headerSubtitle}>Earlier</Text>
+            {earlier.map((earlierHistory, index) => (
+              <NotificationCard
+                key={index}
+                status={index <= 2 ? "read" : "unread"}
+                created_at={earlierHistory.created_at}
+              />
+            ))}
+          </View>
+        )}
         <Button
           variant="primary"
           style={{ backgroundColor: COLORS.NEUTRAL[200] }}
