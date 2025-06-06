@@ -10,3 +10,10 @@ export type TMailbox = {
   created_at: string;
   updated_at: string;
 };
+
+export type THistory = {
+  id: string;
+  mailbox_id: string;
+  is_read: boolean;
+  created_at: string;
+};
