@@ -4,11 +4,13 @@ import { THistory } from "@/types/dto";
 import { COLORS } from "@/utils/constant";
 import { supabase } from "@/utils/supabase";
 import { PostgrestResponse } from "@supabase/supabase-js";
-import { addDays, format, formatDistanceToNow } from "date-fns";
+import { format, formatDistanceToNow, startOfToday, subDays } from "date-fns";
+import { fromZonedTime } from "date-fns-tz";
 import { useEffect, useState } from "react";
 import {
   Alert,
   Image,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
@@ -58,52 +60,63 @@ export default function History() {
 
   const [earlier, setEarlier] = useState<THistory[] | null>(null);
 
+  const [range, setRange] = useState<number>(9); // 0 index based so this will be n + 1
+
+  const [earlierTotalLength, setEarlierTotalLength] = useState<number>(0);
+
+  const [refreshing, setRefreshing] = useState<boolean>(false);
+
+  const timeZone = "Asia/Manila";
+  const todayPH = startOfToday(); // 2025-06-07T00:00:00 in PH time
+  const todayUTC = fromZonedTime(todayPH, timeZone); // Convert to UTC
+
   useEffect(() => {
     const getNewest = async () => {
-      const todayDate = new Date();
-      const today = format(todayDate, "yyyy-MM-dd");
-      const tomorrow = format(addDays(todayDate, 1), "yyyy-MM-dd");
-
       try {
         const { data, error }: PostgrestResponse<THistory> = await supabase
           .from("history")
           .select("*")
-          .gte("created_at", today)
-          .lte("created_at", tomorrow)
-          .order("created_at", { ascending: true });
+          .gte("created_at", todayUTC.toISOString())
+          .order("created_at", { ascending: false });
 
         if (error) throw error;
 
         setNewest(data);
       } catch (error) {
         console.error(error);
+      } finally {
+        setRefreshing(false);
       }
     };
 
     getNewest();
-  }, []);
+  }, [refreshing, todayUTC]);
 
   useEffect(() => {
     const getEarlier = async () => {
-      const currenDate = format(new Date(), "yyyy-MM-dd");
-
       try {
-        const { data, error }: PostgrestResponse<THistory> = await supabase
-          .from("history")
-          .select("*")
-          .lte("created_at", currenDate)
-          .order("created_at", { ascending: false });
+        const { data, error, count }: PostgrestResponse<THistory> =
+          await supabase
+            .from("history")
+            .select("*", { count: "exact" })
+            .lt("created_at", todayUTC.toISOString())
+            .order("created_at", { ascending: false })
+            .range(0, range);
 
         if (error) throw error;
 
         setEarlier(data);
+
+        setEarlierTotalLength(count || data.length);
       } catch (error) {
         console.error(error);
+      } finally {
+        setRefreshing(false);
       }
     };
 
     getEarlier();
-  }, []);
+  }, [range, refreshing, todayUTC]);
 
   // Realtime subscription
   useEffect(() => {
@@ -171,12 +184,28 @@ export default function History() {
     }
   };
 
+  const handlePressSeeMore = async () => {
+    if (range > earlierTotalLength) {
+      setRange(9);
+      return;
+    }
+
+    setRange((prev) => prev + 3);
+  };
+
   return (
     <ScreenLayout>
-      <ScrollView>
+      <ScrollView
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={() => setRefreshing(true)}
+          />
+        }
+      >
         <Text style={styles.headerTitle}>History</Text>
         {/* Newest Notification Container */}
-        {newest && (
+        {newest && newest.length !== 0 && (
           <View style={styles.newestContainer}>
             <Text style={styles.headerSubtitle}>Newest</Text>
             {newest.map((newHistory, index) => (
@@ -191,7 +220,7 @@ export default function History() {
             ))}
           </View>
         )}
-        {earlier && (
+        {earlier && earlier.length !== 0 && (
           <View style={styles.earlierContainer}>
             <Text style={styles.headerSubtitle}>Earlier</Text>
             {earlier.map((earlierHistory, index) => (
@@ -206,14 +235,17 @@ export default function History() {
             ))}
           </View>
         )}
-        <Button
-          variant="primary"
-          style={{ backgroundColor: COLORS.NEUTRAL[200] }}
-        >
-          <Text style={{ color: "#FFFFFF", textAlign: "center" }}>
-            See More
-          </Text>
-        </Button>
+        {earlierTotalLength > 10 && (
+          <Button
+            onPress={handlePressSeeMore}
+            variant="primary"
+            style={{ backgroundColor: COLORS.NEUTRAL[200] }}
+          >
+            <Text style={{ color: "#FFFFFF", textAlign: "center" }}>
+              {range + 1 > earlierTotalLength ? "See Less" : "See More"}
+            </Text>
+          </Button>
+        )}
       </ScrollView>
     </ScreenLayout>
   );

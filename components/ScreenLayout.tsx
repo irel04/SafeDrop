@@ -1,11 +1,13 @@
 import React from "react";
-import { View, StyleSheet } from "react-native";
+import { StyleSheet, SafeAreaView } from "react-native";
 
 type TScreenLayout = {
   children: React.ReactNode;
 };
 const ScreenLayout = ({ children }: TScreenLayout) => {
-  return <View style={styles.screenLayoutContainer}>{children}</View>;
+  return (
+    <SafeAreaView style={styles.screenLayoutContainer}>{children}</SafeAreaView>
+  );
 };
 
 const styles = StyleSheet.create({
