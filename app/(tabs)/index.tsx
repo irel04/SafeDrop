@@ -6,7 +6,15 @@ import { COLORS } from "@/utils/constant";
 import { supabase } from "@/utils/supabase";
 import { PostgrestSingleResponse } from "@supabase/supabase-js";
 import { useEffect, useState } from "react";
-import { Alert, Image, StyleSheet, Text, View } from "react-native";
+import {
+  Alert,
+  Image,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import { Skeleton } from "@rneui/base";
 import { getDateTime } from "@/utils/helper";
 
@@ -48,6 +56,8 @@ export default function HomeScreen() {
     null,
   );
 
+  const [refreshing, setRefreshing] = useState<boolean>(false);
+
   // Load for the first time
   useEffect(() => {
     const getMailbox = async () => {
@@ -74,10 +84,11 @@ export default function HomeScreen() {
       } catch (error) {
         console.error(error);
       } finally {
+        setRefreshing(false);
       }
     };
     getMailbox();
-  }, []);
+  }, [refreshing]);
 
   // Listen to changes
   useEffect(() => {
@@ -128,13 +139,22 @@ export default function HomeScreen() {
           : "You’ve unlocked the mailbox.",
       );
     } catch (error) {
+      Alert.alert("Failed", "Please check your network");
       console.error(error);
     }
   };
 
   return (
     <ScreenLayout>
-      <View style={styles.homeContainer}>
+      <ScrollView
+        contentContainerStyle={styles.homeContainer}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={() => setRefreshing(false)}
+          />
+        }
+      >
         {/* Package Container */}
         <View style={styles.packageContainer}>
           <Image source={require("@/assets/images/bubble.png")} />
@@ -177,7 +197,7 @@ export default function HomeScreen() {
             </View>
           </Button>
         </View>
-      </View>
+      </ScrollView>
     </ScreenLayout>
   );
 }
@@ -234,11 +254,13 @@ const styles = StyleSheet.create({
   },
 
   buttonsContainer: {
-    flex: 1,
     display: "flex",
     justifyContent: "flex-end",
     alignItems: "center",
+    bottom: 0,
     gap: 20,
+    marginTop: "auto",
+    paddingVertical: 16,
   },
   labelOrientation: {
     fontSize: 16,
