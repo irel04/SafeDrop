@@ -4,7 +4,7 @@ import { THistory } from "@/types/dto";
 import { COLORS } from "@/utils/constant";
 import { supabase } from "@/utils/supabase";
 import { PostgrestResponse } from "@supabase/supabase-js";
-import { format, formatDistanceToNow, startOfToday, subDays } from "date-fns";
+import { format, formatDistanceToNow, startOfToday } from "date-fns";
 import { fromZonedTime } from "date-fns-tz";
 import { useEffect, useState } from "react";
 import {
@@ -199,6 +199,8 @@ export default function History() {
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
+            progressBackgroundColor={COLORS.BRAND[100]}
+            tintColor={COLORS.BRAND[100]}
             onRefresh={() => setRefreshing(true)}
           />
         }

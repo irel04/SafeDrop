@@ -73,6 +73,7 @@ export default function HomeScreen() {
         setParcelStatus(MESSAGE_CONTENT[mailbox.parcel_status]);
       } catch (error) {
         console.error(error);
+      } finally {
       }
     };
     getMailbox();
