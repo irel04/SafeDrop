@@ -79,7 +79,7 @@ export default function HomeScreen() {
         setIsLocked(mailbox.is_locked);
         setId(mailbox.id);
 
-        // setParcelStatus(MESSAGE_CONTENT[mailbox.parcel_status]);
+        setParcelStatus(MESSAGE_CONTENT[mailbox.parcel_status]);
       } catch (error) {
         console.error(error);
       } finally {
