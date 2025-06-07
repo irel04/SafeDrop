@@ -15,7 +15,6 @@ import {
   Text,
   View,
 } from "react-native";
-import { Skeleton } from "@rneui/base";
 import { getDateTime } from "@/utils/helper";
 
 type TMessageStructure = {
@@ -80,7 +79,7 @@ export default function HomeScreen() {
         setIsLocked(mailbox.is_locked);
         setId(mailbox.id);
 
-        setParcelStatus(MESSAGE_CONTENT[mailbox.parcel_status]);
+        // setParcelStatus(MESSAGE_CONTENT[mailbox.parcel_status]);
       } catch (error) {
         console.error(error);
       } finally {
@@ -205,9 +204,18 @@ export default function HomeScreen() {
 const TextSkeleton = () => {
   return (
     <View style={[styles.textContent, { gap: 6, width: 250 }]}>
-      <Skeleton width={75} height={15} />
-      <Skeleton height={90} />
-      <Skeleton width={75} height={15} style={{ alignSelf: "flex-end" }} />
+      <View
+        style={{ height: 15, width: 75, backgroundColor: COLORS.BRAND[100] }}
+      />
+      <View style={{ height: 90, backgroundColor: COLORS.BRAND[100] }} />
+      <View
+        style={{
+          alignSelf: "flex-end",
+          height: 15,
+          width: 75,
+          backgroundColor: COLORS.BRAND[100],
+        }}
+      />
     </View>
   );
 };
